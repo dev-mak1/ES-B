@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌍 Community Gallery</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Supabase client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // 🔹 Insert your actual keys here (you already have them)
+    const UPLOAD_API_KEY = "public_kW2K8cXGdvspPy1vufJisXTEg7ZS";
+    const SUPABASE_URL = "https://owbkvusvbydiirddgnqd.supabase.co";
+    const SUPABASE_ANON_KEY =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93Ymt2dXN2YnlkaWlyZGRnbnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNjIyNjEsImV4cCI6MjA3NjYzODI2MX0.gJYx88dwjt-rz0x7JyhD-fbQyl0b0YliEullAMaltkc";
+
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function uploadImage(file) {
+      if (!file) return alert("Please select an image.");
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Upload to Upload.io
+      const uploadRes = await fetch("https://api.upload.io/v2/accounts/upload", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + UPLOAD_API_KEY },
+        body: formData,
+      });
+
+      const data = await uploadRes.json();
+
+      if (!data.fileUrl) {
+        alert("Upload failed.");
+        console.error(data);
+        return;
+      }
+
+      const url = data.fileUrl;
+
+      // Save to Supabase
+      const { error } = await supabase.from("images").insert([{ url }]);
+      if (error) {
+        console.error("Supabase error:", error);
+        alert("Database error!");
+      } else {
+        addImageToGallery(url);
+      }
+    }
+
+    async function loadImages() {
+      const { data, error } = await supabase
+        .from("images")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      data.forEach((img) => addImageToGallery(img.url));
+    }
+
+    function addImageToGallery(url) {
+      const gallery = document.getElementById("gallery");
+      const img = document.createElement("img");
+      img.src = url;
+      gallery.prepend(img); // newest first
+    }
+
+    function subscribeToRealtime() {
+      supabase
+        .channel("public:images")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "images" },
+          (payload) => {
+            console.log("New image added:", payload.new.url);
+            addImageToGallery(payload.new.url);
+          }
+        )
+        .subscribe();
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("uploadForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const file = document.getElementById("fileInput").files[0];
+        uploadImage(file);
+      });
+
+      loadImages();
+      subscribeToRealtime();
+    });
+  </script>
+</head>
+<body>
+  <h1>🌍 Community Gallery</h1>
+
+  <form id="uploadForm">
+    <input type="file" id="fileInput" accept="image/*" required />
+    <button type="submit">Upload</button>
+  </form>
+
+  <div id="gallery" class="gallery"></div>
+</body>
+</html>

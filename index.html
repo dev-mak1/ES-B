@@ -13,13 +13,11 @@
     // 🔹 Your keys
     const UPLOAD_API_KEY = "public_kW2K8cXGdvspPy1vufJisXTEg7ZS";
     const SUPABASE_URL = "https://owbkvusvbydiirddgnqd.supabase.co";
-    const SUPABASE_ANON_KEY =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93Ymt2dXN2YnlkaWlyZGRnbnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNjIyNjEsImV4cCI6MjA3NjYzODI2MX0.gJYx88dwjt-rz0x7JyhD-fbQyl0b0YliEullAMaltkc";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93Ymt2dXN2YnlkaWlyZGRnbnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNjIyNjEsImV4cCI6MjA3NjYzODI2MX0.gJYx88dwjt-rz0x7JyhD-fbQyl0b0YliEullAMaltkc";
 
-    // ✅ Correct Supabase client initialization
+    // ✅ Correct initialization
     const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Upload image to Upload.io
     async function uploadImage(file) {
       if (!file) return alert("Please select an image.");
 
@@ -33,10 +31,8 @@
       });
 
       const data = await uploadRes.json();
-
       if (!data.fileUrl) {
         alert("Upload failed.");
-        console.error(data);
         return;
       }
 
@@ -52,47 +48,34 @@
       }
     }
 
-    // Load all images from Supabase
     async function loadImages() {
       const { data, error } = await supabase
         .from("images")
         .select("*")
         .order("created_at", { ascending: false });
+      if (error) return console.error(error);
 
-      if (error) {
-        console.error(error);
-        return;
-      }
-
-      data.forEach((img) => addImageToGallery(img.url));
+      data.forEach(img => addImageToGallery(img.url));
     }
 
-    // Add image to DOM
     function addImageToGallery(url) {
       const gallery = document.getElementById("gallery");
       const img = document.createElement("img");
       img.src = url;
-      gallery.prepend(img); // newest first
+      gallery.prepend(img);
     }
 
-    // Subscribe to real-time updates
     function subscribeToRealtime() {
       supabase
         .channel("public:images")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "images" },
-          (payload) => {
-            console.log("New image added:", payload.new.url);
-            addImageToGallery(payload.new.url);
-          }
-        )
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "images" }, payload => {
+          addImageToGallery(payload.new.url);
+        })
         .subscribe();
     }
 
-    // Initialize everything
     window.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("uploadForm").addEventListener("submit", (e) => {
+      document.getElementById("uploadForm").addEventListener("submit", e => {
         e.preventDefault();
         const file = document.getElementById("fileInput").files[0];
         uploadImage(file);

@@ -16,7 +16,7 @@
     const SUPABASE_ANON_KEY =
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93Ymt2dXN2YnlkaWlyZGRnbnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNjIyNjEsImV4cCI6MjA3NjYzODI2MX0.gJYx88dwjt-rz0x7JyhD-fbQyl0b0YliEullAMaltkc";
 
-    // ✅ Correct initialization
+    // ✅ Correct Supabase client initialization
     const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Upload image to Upload.io
@@ -90,7 +90,7 @@
         .subscribe();
     }
 
-    // Initialize
+    // Initialize everything
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("uploadForm").addEventListener("submit", (e) => {
         e.preventDefault();

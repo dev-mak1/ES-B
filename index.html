@@ -6,22 +6,19 @@
   <title>🌍 Community Gallery</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Supabase v2 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <!-- Supabase v1 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1/dist/supabase.min.js"></script>
 
-  <!-- Main Script -->
   <script defer>
     document.addEventListener("DOMContentLoaded", async () => {
-      // 🔹 Your keys
       const UPLOAD_API_KEY = "public_kW2K8cXGdvspPy1vufJisXTEg7ZS";
       const SUPABASE_URL = "https://owbkvusvbydiirddgnqd.supabase.co";
       const SUPABASE_ANON_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93Ymt2dXN2YnlkaWlyZGRnbnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNjIyNjEsImV4cCI6MjA3NjYzODI2MX0.gJYx88dwjt-rz0x7JyhD-fbQyl0b0YliEullAMaltkc";
 
-      // ✅ Correct initialization
-      const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // ✅ v1: createClient works with the global supabase object
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      // Upload image to Upload.io
       async function uploadImage(file) {
         if (!file) return alert("Please select an image.");
         const formData = new FormData();
@@ -37,16 +34,15 @@
         if (!data.fileUrl) return alert("Upload failed.");
 
         const url = data.fileUrl;
-        const { error } = await supabase.from("images").insert([{ url }]);
+        const { error } = await supabaseClient.from("images").insert([{ url }]);
         if (error) {
           console.error(error);
           alert("Database error!");
         } else addImageToGallery(url);
       }
 
-      // Load all images
       async function loadImages() {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from("images")
           .select("*")
           .order("created_at", { ascending: false });
@@ -54,7 +50,6 @@
         data.forEach(img => addImageToGallery(img.url));
       }
 
-      // Add image to DOM
       function addImageToGallery(url) {
         const gallery = document.getElementById("gallery");
         const img = document.createElement("img");
@@ -62,24 +57,21 @@
         gallery.prepend(img);
       }
 
-      // Subscribe to realtime updates
       function subscribeToRealtime() {
-        supabase
-          .channel("public:images")
-          .on("postgres_changes", { event: "INSERT", schema: "public", table: "images" }, payload => {
+        supabaseClient
+          .from("images")
+          .on("INSERT", payload => {
             addImageToGallery(payload.new.url);
           })
           .subscribe();
       }
 
-      // Form submit
       document.getElementById("uploadForm").addEventListener("submit", e => {
         e.preventDefault();
         const file = document.getElementById("fileInput").files[0];
         uploadImage(file);
       });
 
-      // Initialize
       loadImages();
       subscribeToRealtime();
     });
